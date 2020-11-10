@@ -4,7 +4,7 @@ filePath = r"C:\Users\Jack\Desktop\Cours\HMIN113M_Systeme\Projet_variants\human_
 
 date = ""
 # Les cas possibles pour chaque colonne obligatoire : dictionnaire de liste de dictionnaires
-# TODO rajouter les cas de base ?
+# TODO rajouter les cas de base ? cas ALT
 COLONNES = {'CHROM' : [], 'POS' : [], 'ID' : [], 'REF' : [], 'ALT' : [],
             'QUAL' : [], 'FILTER' : [], 'INFO' : [], 'FORMAT' : []}
 
@@ -69,7 +69,7 @@ def fillInfos(line):
     elif caseName == 'fileDate':    # Si c'est la date
         setDate(line[9:])
 
-    else :  # Champs inutile ou à rajouter
+    else :  # Champs inutile ou à rajouter (version)
         pass
 
         
