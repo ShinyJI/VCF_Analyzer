@@ -141,6 +141,9 @@ def fillAllDatas(f):
             fillVariants(line)
             pass
 
+#########################################################################################################################
+#########################################################################################################################
+                                                # Fonctions d'analyse
 
 # Recupération des qualités des variants
 def QualityByChrom():
@@ -169,9 +172,16 @@ def QualityByChrom():
         
         analyseQuality(maxQual, dic)  # Analyse
 
+        x = dic.keys()
         height = [sum(qual)/len(qual) for qual in dic.values()]
-        x = [chrom for chrom in dic.keys()]
-        plotQualityByChrom(height, x)   # Affichage diagramme
+        ylabel = 'Qualité'
+        xlabel = 'Chromosome'
+        title = 'Moyenne de la qualité des variants pour chaque chromosome'
+        color = (0.65098041296005249, 0.80784314870834351, 0.89019608497619629, 1.0)
+        edgecolor = 'blue'
+        
+        plotBar(x, height, xlabel, ylabel, title, color, edgecolor)
+
 
 
 # Analyse la qualité des variants
@@ -184,39 +194,87 @@ def analyseQuality(maxQual, qualityDic):
             dic[CHROM] += nbrOccurence/len(QUAL)*100
         except :
             dic[CHROM] = nbrOccurence/len(QUAL)*100
+
     
-    x = [chrom for chrom in dic.keys()]
-    height = [nbrOccurence for nbrOccurence in dic.values()]
-    plotMaxQualityByChrom(height, x, maxQual)    # Affichage diagramme
+    x = dic.keys()
+    height = dic.values()
+    ylabel = 'Nombre de variant (en %)'
+    xlabel = 'Chromosome'
+    title = 'Nombre de variants ayant la meilleure qualité (' + str(maxQual)+  ') pour chaque chromosome, en %'
+    color = 'orange'
+    edgecolor = 'red'
+    
+    plotBar(x, height, xlabel, ylabel, title, color, edgecolor)
 
 
-# Dessine le diagramme des chromosomes ayant le plus haut pourcentage de variants de la plus haute qualité donnée
-def plotMaxQualityByChrom(height, x, maxQual):
+# Occurence des base nucléiques pour tous les variants
+def nbrREFTotal():
+    global VARIANTS
+    
+    dic = {} # Dictionnaire des occurences des gènes
+    
+    for variant in VARIANTS :
+        for base in variant['REF']:
+            try:
+                dic[base] += 1
+            except :
+                dic[base] = 1
+
+    if sum(dic.values()) > 0 :  # Si il y a des valeurs à afficher
+            
+        labels = dic.keys()
+        sizes = [c for c in dic.values()]
+        title = "Nombre d'occurences de chaques base nucléique pour tous les variants"
         
-    width = 1.0
-    plt.figure(1)
-    plt.bar(x, height, width, color='orange', edgecolor = 'red')
-    plt.ylabel('Nombre de variant (en %)')
-    plt.xlabel('Chromosome')
-    plt.title('Nombre de variants ayant la meilleure qualité (' + str(maxQual)+  ') pour chaque chromosome, en %')
-    
+        plotPieChart(sizes, labels, title)
 
 
-# Dessine le diagramme des qualités des variants pour chaque chromosome 
-def plotQualityByChrom(height, x):
+# Occurence des bases nucléiques des variants pour un chromosome donné
+def nbrREFByChrom(chrom):
+    global VARIANTS
     
+    dic = {} # Dictionnaire des occurences des gènes
+    
+    for variant in VARIANTS :
+        if variant['CHROM'][0] == chrom:
+            for base in variant['REF']:
+                try:
+                    dic[base] += 1
+                except :
+                    dic[base] = 1
+
+    if sum(dic.values()) > 0 :  # Si il y a des valeurs à afficher
+            
+        labels = dic.keys()
+        sizes = [c for c in dic.values()]
+        title = "Nombre d'occurences de chaques base nucléique \npour les variants du chromosome " + chrom
+        
+        plotPieChart(sizes, labels, title)
+
+        
+# Fonction de plot de pie chart
+def plotPieChart(sizes, labels, title):
+
+    plt.figure()
+    plt.pie(sizes, labels = labels, autopct='%1.1f%%', startangle=140)
+    plt.title(title, bbox={'facecolor':'0.8', 'pad':5})
+
+
+# Fonction de plot de diagramme
+def plotBar(x, height, xlabel, ylabel, title, color, edgecolor):
+
     width = 1.0
-    plt.figure(2)
-    plt.bar(x, height, width, color=(0.65098041296005249, 0.80784314870834351, 0.89019608497619629, 1.0), edgecolor = 'blue')
-    plt.ylabel('Qualité')
-    plt.xlabel('Chromosome')
-    plt.title('Moyenne de la qualité des variants pour chaque chromosome')
+    plt.figure()
+    plt.bar(x, height, width, color=color, edgecolor = edgecolor)
+    plt.ylabel(ylabel)
+    plt.xlabel(xlabel)
+    plt.title(title)
 
 
 def main():
 
     # ETAPE 1 : Vérification et ouverture du fichier
-    if(checkName(filePath)):
+    if checkName(filePath):
         f = getFile(filePath)
 
     # ETAPE 2 : Stockage des informations
@@ -226,14 +284,16 @@ def main():
     
     # Idées : 
     #         - Combien de délétions/insertions ?
-    #         - Chromosome le plus rencontré (A, T, C, G) ?
     #         - Taille
     #         - Analyse sur les tags existants
     
     #TODO : Analyser les chromosomes en fonction des infos
     
     QualityByChrom() # Analyse en fonction de la qualité
+    nbrREFTotal()    # Analyse des bases azotées les plus rencontrées
+    nbrREFByChrom('1')  # Idem mais pour un chromosome en particulier
     
+
 def printInfo():
     global COLONNES
     
@@ -243,9 +303,22 @@ def printInfo():
             for (infoName, infoValue) in dicoInfo.items():
                 print(infoName, ":", infoValue, end=' ')
             print('')
+            
+
+def printChromName():
+    global VARIANTS
+
+    d = set()
+
+    for variant in VARIANTS:
+        d.add(variant['CHROM'][0])
+
+    print(d)
+    return d
 
 main()
 #print(SYNCHRO_COLUMNS)
 #printInfo()
 #print(VARIANTS[0])
 plt.show(block = False)
+printChromName()
