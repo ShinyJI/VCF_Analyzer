@@ -1,4 +1,7 @@
 import sys, re
+import matplotlib.pyplot as plt
+
+plt.rcParams['toolbar'] = 'None'
 
 filePath = r"C:\Users\Jack\Desktop\Cours\HMIN113M_Systeme\Projet_variants\human_CEU.vcf"
 
@@ -96,8 +99,8 @@ def fillAdditionnalColumns(line):
     global ADDITIONAL_COLUMNS, SYNCHRO_COLUMNS
     
     try :
-        column = re.search('FORMAT.*', line).group(0)
-        column_list = column.split('\t')
+        column = re.search('FORMAT.*', line).group(0)   # Nom des colonnes apres INFO
+        column_list = column.split('\t')    # Transformation en liste
         for column_name in column_list:
             ADDITIONAL_COLUMNS.add(column_name) # Ajout de la colonne à l'ensemble des colonnes
             if column_name not in SYNCHRO_COLUMNS.values(): # Synchronisation
@@ -105,7 +108,7 @@ def fillAdditionnalColumns(line):
             
     except :    # Si il n'y a pas de colonnes supplémentaires
         pass
-    
+
 
 # Rempli la liste de variants avec les informations d'une ligne (1 variant)
 def fillVariants(line):
@@ -138,7 +141,78 @@ def fillAllDatas(f):
             fillVariants(line)
             pass
 
+
+# Recupération des qualités des variants
+def QualityByChrom():
+    global VARIANTS
+
+    dic = {}    # Dictionnaire {CHROM1 : [QUAL1, QUAL2, ... ], CHROM2 : [QUAL3, ... ], ... }
+    maxQual = 0
     
+    for variant in VARIANTS:
+        CHROM = variant['CHROM'][0] # Chromosome du variant
+        
+        try:
+            QUAL = int(variant['QUAL'][0])   # Qualité du variant
+        except:
+            QUAL = 0
+        
+        if QUAL > maxQual : # Mise à jour de la qualité maximale
+            maxQual = QUAL
+            
+        try :
+            dic[CHROM].append(QUAL)
+        except :
+            dic[CHROM] = [QUAL]
+
+    if maxQual > 0 :    # Si la qualité est renseignée
+        
+        analyseQuality(maxQual, dic)  # Analyse
+
+        height = [sum(qual)/len(qual) for qual in dic.values()]
+        x = [chrom for chrom in dic.keys()]
+        plotQualityByChrom(height, x)   # Affichage diagramme
+
+
+# Analyse la qualité des variants
+def analyseQuality(maxQual, qualityDic):
+    
+    dic = {}
+    for CHROM, QUAL in qualityDic.items():
+        nbrOccurence = QUAL.count(maxQual)
+        try :
+            dic[CHROM] += nbrOccurence/len(QUAL)*100
+        except :
+            dic[CHROM] = nbrOccurence/len(QUAL)*100
+    
+    x = [chrom for chrom in dic.keys()]
+    height = [nbrOccurence for nbrOccurence in dic.values()]
+    plotMaxQualityByChrom(height, x, maxQual)    # Affichage diagramme
+
+
+# Dessine le diagramme des chromosomes ayant le plus haut pourcentage de variants de la plus haute qualité donnée
+def plotMaxQualityByChrom(height, x, maxQual):
+        
+    width = 1.0
+    plt.figure(1)
+    plt.bar(x, height, width, color='orange', edgecolor = 'red')
+    plt.ylabel('Nombre de variant (en %)')
+    plt.xlabel('Chromosome')
+    plt.title('Nombre de variants ayant la meilleure qualité (' + str(maxQual)+  ') pour chaque chromosome, en %')
+    
+
+
+# Dessine le diagramme des qualités des variants pour chaque chromosome 
+def plotQualityByChrom(height, x):
+    
+    width = 1.0
+    plt.figure(2)
+    plt.bar(x, height, width, color=(0.65098041296005249, 0.80784314870834351, 0.89019608497619629, 1.0), edgecolor = 'blue')
+    plt.ylabel('Qualité')
+    plt.xlabel('Chromosome')
+    plt.title('Moyenne de la qualité des variants pour chaque chromosome')
+
+
 def main():
 
     # ETAPE 1 : Vérification et ouverture du fichier
@@ -150,14 +224,15 @@ def main():
 
     #ETAPE 3 : Analyse des variants
     
-    # Idées : - Moyenne des qualités
-    #         - Variant meilleure qualité
+    # Idées : 
     #         - Combien de délétions/insertions ?
     #         - Chromosome le plus rencontré (A, T, C, G) ?
     #         - Taille
     #         - Analyse sur les tags existants
     
     #TODO : Analyser les chromosomes en fonction des infos
+    
+    QualityByChrom() # Analyse en fonction de la qualité
     
 def printInfo():
     global COLONNES
@@ -172,3 +247,5 @@ def printInfo():
 main()
 #print(SYNCHRO_COLUMNS)
 #printInfo()
+#print(VARIANTS[0])
+plt.show(block = False)
