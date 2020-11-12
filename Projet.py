@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 
 plt.rcParams['toolbar'] = 'None'
 
-filePath = r"C:\Users\Jack\Desktop\Cours\HMIN113M_Systeme\Projet_variants\human_CEU.vcf"
+filePath = r"C:\Users\Jack\Desktop\Cours\HMIN113M_Systeme\Projet_variants\extra_1.vcf"
 
 DATE = ""
 
@@ -22,6 +22,53 @@ VARIANTS = list()
 # Dictionnaire synchronisant les colonnes avec leur ordre de lecture (Equivalent d'Hashmap)
 SYNCHRO_COLUMNS = {0 : 'CHROM', 1 : 'POS', 2 : 'ID', 3 : 'REF', 4 : 'ALT',
                    5 : 'QUAL', 6 : 'FILTER', 7 : 'INFO'}
+
+
+# Initialisation des colonnes
+def init_colonnes():
+    global COLONNES
+    
+    FILTER_INIT = [{'ID' : 'PASS', 'Number' : 0, 'Type' : 'FLAG', 'Description' : 'Le variant passe le filtre'},
+                   {'ID' : '.', 'Number' : 0, 'Type' : 'FLAG', 'Description' : 'Non renseigné'}]
+
+    INFO_INIT = [{'ID' : 'AA', 'Number' : 0, 'Type' : 'FLAG', 'Description' : 'ancestral allele'},
+                 {'ID' : 'AC', 'Number' : 0, 'Type' : 'FLAG', 'Description' : 'allele count in genotypes, for each ALT allele, in the same order as listed'},
+                 {'ID' : 'AF', 'Number' : 0, 'Type' : 'FLAG', 'Description' : 'allele frequency for each ALT allele in the same order as listed: use this when estimated from primary data, not called genotypes'},
+                 {'ID' : 'AN', 'Number' : 0, 'Type' : 'FLAG', 'Description' : 'total number of alleles in called genotypes'},
+                 {'ID' : 'BQ', 'Number' : 0, 'Type' : 'FLAG', 'Description' : 'RMS base quality at this position'},
+                 {'ID' : 'CIGAR', 'Number' : 0, 'Type' : 'FLAG', 'Description' : 'cigar string describing how to align an alternate allele to the reference allele'},
+                 {'ID' : 'DB', 'Number' : 0, 'Type' : 'FLAG', 'Description' : 'dbSNP membership'},
+                 {'ID' : 'DP', 'Number' : 0, 'Type' : 'FLAG', 'Description' : 'combined depth across samples, e.g. DP=154'},
+                 {'ID' : 'END', 'Number' : 0, 'Type' : 'FLAG', 'Description' : 'end position of the variant described in this record (esp. for CNVs)'},
+                 {'ID' : 'H2', 'Number' : 0, 'Type' : 'FLAG', 'Description' : 'membership in hapmap2'},
+                 {'ID' : 'MQ', 'Number' : 0, 'Type' : 'FLAG', 'Description' : 'RMS mapping quality, e.g. MQ=52'},
+                 {'ID' : 'MQ0', 'Number' : 0, 'Type' : 'FLAG', 'Description' : 'Number of MAPQ == 0 reads covering this record'},
+                 {'ID' : 'NS', 'Number' : 0, 'Type' : 'FLAG', 'Description' : 'Number of samples with data'},
+                 {'ID' : 'SB', 'Number' : 0, 'Type' : 'FLAG', 'Description' : 'strand bias at this position'},
+                 {'ID' : 'SOMATIC', 'Number' : 0, 'Type' : 'FLAG', 'Description' : 'indicates that the record is a somatic mutation, for cancer genomics'},
+                 {'ID' : 'VALIDATED', 'Number' : 0, 'Type' : 'FLAG', 'Description' : 'validated by follow-up experiment'}]
+
+
+    for new_case in FILTER_INIT :
+        isIn = False
+        ID = new_case['ID']
+        for existing_case in COLONNES['FILTER']:
+            if ID == existing_case['ID']:
+                isIn = True
+                break
+        if not isIn :
+            COLONNES['FILTER'].append(new_case)
+        
+    for new_case in INFO_INIT :
+        isIn = False
+        ID = new_case['ID']
+        for existing_case in COLONNES['INFO']:
+            if ID == existing_case['ID']:
+                isIn = True
+                break
+        if not isIn :
+            COLONNES['INFO'].append(new_case)
+
 
 # TODO
 # Transforme la date en une date lisible
@@ -145,8 +192,8 @@ def fillAllDatas(f):
 #########################################################################################################################
                                                 # Fonctions d'analyse
 
-# Recupération des qualités des variants
-def QualityByChrom():
+# Analyse de la qualité des variants pour tous les chromosomes, trié par chromosome
+def qualityTotal():
     global VARIANTS
 
     dic = {}    # Dictionnaire {CHROM1 : [QUAL1, QUAL2, ... ], CHROM2 : [QUAL3, ... ], ... }
@@ -168,9 +215,7 @@ def QualityByChrom():
         except :
             dic[CHROM] = [QUAL]
 
-    if maxQual > 0 :    # Si la qualité est renseignée
-        
-        analyseQuality(maxQual, dic)  # Analyse
+    if maxQual > 0 :    # Si tous les variants n'ont pas une qualité de 0
 
         x = dic.keys()
         height = [sum(qual)/len(qual) for qual in dic.values()]
@@ -183,32 +228,35 @@ def QualityByChrom():
         plotBar(x, height, xlabel, ylabel, title, color, edgecolor)
 
 
+# Analyse de la qualité des variants pour un chromosome donné
+def qualityChrom(chrom):
+    global VARIANTS
 
-# Analyse la qualité des variants
-def analyseQuality(maxQual, qualityDic):
+    dic = {}    # Forme {1 : qualité, 2 : qualité, ... }
+    i = 1
+    for varia0t in VARIANTS :
+        if variant['CHROM'][0] == chrom :
+            try :
+                dic[i] = int(variant['QUAL'][0])
+            except :
+                dic[i] = 0
+            i += 1
+
+    if(sum(dic.values()) > 0) : # Si tous les variants n'ont pas une qualité de 0
+        
+        x = dic.keys()
+        height = dic.values()
+        ylabel = 'Qualité'
+        xlabel = 'Variant'
+        title = 'Qualité des variants du chromosome ' + str(chrom)
+        color = (0.65098041296005249, 0.80784314870834351, 0.89019608497619629, 1.0)
+        edgecolor = 'black'
+        
+        plotBar(x, height, xlabel, ylabel, title, color, edgecolor)
     
-    dic = {}
-    for CHROM, QUAL in qualityDic.items():
-        nbrOccurence = QUAL.count(maxQual)
-        try :
-            dic[CHROM] += nbrOccurence/len(QUAL)*100
-        except :
-            dic[CHROM] = nbrOccurence/len(QUAL)*100
-
     
-    x = dic.keys()
-    height = dic.values()
-    ylabel = 'Nombre de variant (en %)'
-    xlabel = 'Chromosome'
-    title = 'Nombre de variants ayant la meilleure qualité (' + str(maxQual)+  ') pour chaque chromosome, en %'
-    color = 'orange'
-    edgecolor = 'red'
-    
-    plotBar(x, height, xlabel, ylabel, title, color, edgecolor)
-
-
-# Occurence des base nucléiques pour tous les variants
-def nbrREFTotal():
+# Occurence des base nucléiques de l'allèle de référence 
+def REFbaseTypeTotal():
     global VARIANTS
     
     dic = {} # Dictionnaire des occurences des gènes
@@ -223,14 +271,14 @@ def nbrREFTotal():
     if sum(dic.values()) > 0 :  # Si il y a des valeurs à afficher
             
         labels = dic.keys()
-        sizes = [c for c in dic.values()]
-        title = "Nombre d'occurences de chaques base nucléique pour tous les variants"
+        sizes = dic.values()
+        title = "Nombre d'occurences de chaques base nucléique du génome de référence"
         
         plotPieChart(sizes, labels, title)
 
 
-# Occurence des bases nucléiques des variants pour un chromosome donné
-def nbrREFByChrom(chrom):
+# Occurence des bases nucléiques de l'allèle de référence pour un chromosome donné
+def REFbaseTypeChrom(chrom):
     global VARIANTS
     
     dic = {} # Dictionnaire des occurences des gènes
@@ -247,12 +295,86 @@ def nbrREFByChrom(chrom):
             
         labels = dic.keys()
         sizes = [c for c in dic.values()]
-        title = "Nombre d'occurences de chaques base nucléique \npour les variants du chromosome " + chrom
+        title = "Nombre d'occurences de chaques base nucléique \ndu génnome de référence pour le chromosome " + chrom
         
         plotPieChart(sizes, labels, title)
 
+
+# Analyse du pourcentage de variants qui ont passé le filtre, trié par chromosome
+#TODO
+def analyzeFilterTotal():
+    global VARIANTS
+
+    d = dic()
+    for variant in VARIANTS :
+        CHROM = variant['CHROM'][0] # Chromosome du variant
+        FILTER = variant['FILTER'][0]  # Qualité du variant
         
-# Fonction de plot de pie chart
+        try:
+            dic[CHROM].append(FILTER)
+        except:
+            dic[CHROM] = [FILTER]
+
+
+# Renvoie la description d'un FILTER donné
+def getFilterDescription(ID):
+    global COLONNES
+    for FILTER in COLONNES['FILTER']:
+        if FILTER['ID'] == ID :
+            return FILTER['Description']
+
+
+# Analyse du filtrage des variants pour un chromosome donné
+def analyzeFilterChrom(chrom):
+    global VARIANTS, COLONNES
+
+    dic  = {}
+    dic_legends = {}    # {Nom du (des) filtre utilisé : description}
+    
+    for variant in VARIANTS :
+        if variant['CHROM'][0] == chrom :
+
+            FILTER = variant['FILTER']  # Qualité du variant    
+            name = ''
+            
+            for filter_name in FILTER : # Première boucle pour créer le nom
+                name += filter_name + ' et '
+            name = name[0:-4]   # Enlève le 'et' à la fin
+
+            if name not in dic_legends.keys():
+                
+                for filter_name in FILTER : # Seconde boucle pour les descriptions
+                    
+                    try:
+                        dic_legends[name] += getFilterDescription(filter_name) + '\n'
+                    except :
+                        dic_legends[name] = getFilterDescription(filter_name) + '\n'
+
+                dic_legends[name] = dic_legends[name][:-1]  # Enlève le '\n' à la fin
+            
+            try :
+                dic[name] += 1
+            except :
+                dic[name] = 1
+
+    labels = dic.keys()
+    sizes = dic.values()
+    title = 'Filtre pour les variants du chromosome ' + str(chrom)
+    legends = dic_legends.values()
+    
+    plotPieChartWithLegends(sizes, labels, title, legends)
+    
+
+# Fonction de plot de pie chart avec des légendes
+def plotPieChartWithLegends(sizes, labels, title, legends):
+
+    plt.figure()
+    patches, texts, junk = plt.pie(sizes, labels = labels, autopct='%1.1f%%', startangle=180)
+    plt.title(title, bbox={'facecolor':'0.8', 'pad':5})
+    plt.legend(patches, legends)
+    
+        
+# Fonction de plot de pie chart sans légendes
 def plotPieChart(sizes, labels, title):
 
     plt.figure()
@@ -279,6 +401,8 @@ def main():
 
     # ETAPE 2 : Stockage des informations
     fillAllDatas(f)
+    init_colonnes()
+    printInfo()
 
     #ETAPE 3 : Analyse des variants
     
@@ -288,11 +412,15 @@ def main():
     #         - Analyse sur les tags existants
     
     #TODO : Analyser les chromosomes en fonction des infos
+
+    #qualityTotal()  # Analyse de la qualité pour tous les variants de tous les chromosomes
+    #qualityChrom('1') # Analyse de la qualité des variants d'un chromosome donné
     
-    QualityByChrom() # Analyse en fonction de la qualité
-    nbrREFTotal()    # Analyse des bases azotées les plus rencontrées
-    nbrREFByChrom('1')  # Idem mais pour un chromosome en particulier
+    #REFbaseTypeTotal()    # Analyse des bases azotées les plus rencontrées pour l'allèle de référence
+    #REFbaseTypeChrom('1')  # Idem mais pour un chromosome en particulier pour l'allèle de référence
     
+    #analyzeFilterChrom('1')    # Analyse du filtre pour un chromosome
+
 
 def printInfo():
     global COLONNES
@@ -303,7 +431,7 @@ def printInfo():
             for (infoName, infoValue) in dicoInfo.items():
                 print(infoName, ":", infoValue, end=' ')
             print('')
-            
+
 
 def printChromName():
     global VARIANTS
@@ -316,9 +444,8 @@ def printChromName():
     print(d)
     return d
 
+
 main()
-#print(SYNCHRO_COLUMNS)
-#printInfo()
-#print(VARIANTS[0])
+
+
 plt.show(block = False)
-printChromName()
