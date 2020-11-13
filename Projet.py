@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 
 plt.rcParams['toolbar'] = 'None'
 
-filePath = r"C:\Users\Jack\Desktop\Cours\HMIN113M_Systeme\Projet_variants\extra_1.vcf"
+filePath = r"C:\Users\Jack\Desktop\Cours\HMIN113M_Systeme\Projet_variants\HUMAN_CEU_MEI.vcf"
 
 DATE = ""
 
@@ -148,28 +148,39 @@ def fillAdditionnalColumns(line):
     try :
         column = re.search('FORMAT.*', line).group(0)   # Nom des colonnes apres INFO
         column_list = column.split('\t')    # Transformation en liste
+        
+        if ' ' in column_list[0]:   # Si les colonnes sont séparées par des espaces et non des tabulations
+            column_list = column.split(' ')
+            
         for column_name in column_list:
-            ADDITIONAL_COLUMNS.add(column_name) # Ajout de la colonne à l'ensemble des colonnes
-            if column_name not in SYNCHRO_COLUMNS.values(): # Synchronisation
-                SYNCHRO_COLUMNS[len(SYNCHRO_COLUMNS)] = column_name 
+            if column_name != '' :
+                column_name.replace('\n', '') # Supression des sauts de ligne
+                ADDITIONAL_COLUMNS.add(column_name) # Ajout de la colonne à l'ensemble des colonnes
+                if column_name not in SYNCHRO_COLUMNS.values(): # Synchronisation
+                    SYNCHRO_COLUMNS[len(SYNCHRO_COLUMNS)] = column_name 
             
     except :    # Si il n'y a pas de colonnes supplémentaires
         pass
 
 
 # Rempli la liste de variants avec les informations d'une ligne (1 variant)
+# Synchronise le dictionnaire des colonnes
 def fillVariants(line):
     global SYNCHRO_COLUMNS, VARIANTS
     
     dic = {}
-    
     field_list = line.split('\t')
+
+    if len(field_list) < 8 :    # Si les colonnes sont séparées par des espaces et non des tabulations
+        field_list = line.split(' ')
     
     column_number = 0
-    for column in field_list :
-        elements_list = column.split(';')
-        dic[SYNCHRO_COLUMNS[column_number]] = elements_list
-        column_number += 1
+    for column in field_list :  # Pour chaque champ
+        if column != '' :
+            column = column.replace('\n', '') # Supression des sauts de ligne
+            elements_list = column.split(';')
+            dic[SYNCHRO_COLUMNS[column_number]] = elements_list
+            column_number += 1
 
     VARIANTS.append(dic)
 
@@ -234,7 +245,7 @@ def qualityChrom(chrom):
 
     dic = {}    # Forme {1 : qualité, 2 : qualité, ... }
     i = 1
-    for varia0t in VARIANTS :
+    for variant in VARIANTS :
         if variant['CHROM'][0] == chrom :
             try :
                 dic[i] = int(variant['QUAL'][0])
@@ -295,25 +306,49 @@ def REFbaseTypeChrom(chrom):
             
         labels = dic.keys()
         sizes = [c for c in dic.values()]
-        title = "Nombre d'occurences de chaques base nucléique \ndu génnome de référence pour le chromosome " + chrom
+        title = "Nombre d'occurences de chaques base nucléique \ndu génome de référence pour le chromosome " + chrom
         
         plotPieChart(sizes, labels, title)
 
 
 # Analyse du pourcentage de variants qui ont passé le filtre, trié par chromosome
-#TODO
 def analyzeFilterTotal():
-    global VARIANTS
+    global VARIANTS, COLONNES
 
-    d = dic()
+    dic  = {}
+    dic_legends = {}    # {Nom du (des) filtre utilisé : description}
+    
     for variant in VARIANTS :
-        CHROM = variant['CHROM'][0] # Chromosome du variant
-        FILTER = variant['FILTER'][0]  # Qualité du variant
+
+        FILTER = variant['FILTER']  # Qualité du variant    
+        name = ''
         
-        try:
-            dic[CHROM].append(FILTER)
-        except:
-            dic[CHROM] = [FILTER]
+        for filter_name in FILTER : # Première boucle pour créer le nom
+            name += filter_name + ' et '
+        name = name[0:-4]   # Enlève le 'et' à la fin
+
+        if name not in dic_legends.keys():
+            
+            for filter_name in FILTER : # Seconde boucle pour les descriptions
+                
+                try:
+                    dic_legends[name] += getFilterDescription(filter_name) + '\n'
+                except :
+                    dic_legends[name] = getFilterDescription(filter_name) + '\n'
+
+            dic_legends[name] = dic_legends[name][:-1]  # Enlève le '\n' à la fin
+        
+        try :
+            dic[name] += 1
+        except :
+            dic[name] = 1
+
+    labels = dic.keys()
+    sizes = dic.values()
+    title = 'Filtre des variants'
+    legends = dic_legends.values()
+    
+    plotPieChartWithLegends(sizes, labels, title, legends)
 
 
 # Renvoie la description d'un FILTER donné
@@ -394,7 +429,7 @@ def plotBar(x, height, xlabel, ylabel, title, color, edgecolor):
 
 
 def main():
-
+    global VARIANT, SYNCHRO_COLUMNS, COLONNES
     # ETAPE 1 : Vérification et ouverture du fichier
     if checkName(filePath):
         f = getFile(filePath)
@@ -402,7 +437,11 @@ def main():
     # ETAPE 2 : Stockage des informations
     fillAllDatas(f)
     init_colonnes()
-    printInfo()
+    #printInfo()
+    #printVariantFILTER()
+    #print(SYNCHRO_COLUMNS)
+    #printVariants()
+    
 
     #ETAPE 3 : Analyse des variants
     
@@ -413,14 +452,19 @@ def main():
     
     #TODO : Analyser les chromosomes en fonction des infos
 
-    #qualityTotal()  # Analyse de la qualité pour tous les variants de tous les chromosomes
+    qualityTotal()  # Analyse de la qualité pour tous les variants de tous les chromosomes
     #qualityChrom('1') # Analyse de la qualité des variants d'un chromosome donné
     
-    #REFbaseTypeTotal()    # Analyse des bases azotées les plus rencontrées pour l'allèle de référence
+    REFbaseTypeTotal()    # Analyse des bases azotées les plus rencontrées pour l'allèle de référence
     #REFbaseTypeChrom('1')  # Idem mais pour un chromosome en particulier pour l'allèle de référence
-    
-    #analyzeFilterChrom('1')    # Analyse du filtre pour un chromosome
 
+    analyzeFilterTotal()   # Analyse du filtre pour tous les variants
+    #analyzeFilterChrom('1')    # Analyse du filtre pour un chromosome donné
+
+    for chrom in printChromName():
+        qualityChrom(chrom)
+        analyzeFilterChrom(chrom)
+        REFbaseTypeChrom(chrom)
 
 def printInfo():
     global COLONNES
@@ -444,6 +488,15 @@ def printChromName():
     print(d)
     return d
 
+def printVariantFILTER():
+    global VARIANTS
+    
+    for variant in VARIANTS:
+        print(variant['FILTER'])
+
+def printVariants():
+    for variant in VARIANTS :
+        print(variant)
 
 main()
 
