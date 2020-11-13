@@ -52,6 +52,8 @@ def init_colonnes():
                  {'ID' : 'VALIDATED', 'Number' : 0, 'Type' : 'FLAG', 'Description' : 'validated by follow-up experiment'}]
 
 
+    # Ajout des valeurs si elles n'y sont pas déjà 
+
     for new_case in FILTER_INIT :
         isIn = False
         ID = new_case['ID']
@@ -223,6 +225,7 @@ def fillAllDatas(f):
         else:   # Les lignes représentant un variant
             fillVariants(line)
             pass
+
 
 ######################################################################################################################################################################
 ######################################################################################################################################################################
@@ -400,6 +403,86 @@ def analyzeInsertAndDelTotal():
         plotBar(x_balises, height_balises, xlabel_balises, ylabel_balises, title_balises, color_balises, edgecolor_balises, text_balises)
 
 
+def analyzeInsertAndDelChrom(chrom):
+    '''
+        Analyze les insertions et délétions pour tous les variants
+        d'un chromosome donné, en se basant sur les colonnes REF et ALT
+        Affichage de 3 plot
+    '''
+    
+    global VARIANTS, COLONNES
+
+    dic_ins = {}    # Forme {A : 1, C : 14, N : 7, ... }
+    dic_del = {}    # Idem
+    dic_balises = {}    # Forme {ID_Balise1 : 7, ID_Balise2 : 4, ... }
+    dic_descriptions = {}
+
+    for variant in VARIANTS:
+        if variant['CHROM'][0] == chrom :  # Selection pour le bon chromosome
+            ref = variant['REF'][0] # Base de référence
+            ALT = variant['ALT']    # Liste des bases alternatives
+
+            for alt in ALT :    # Pour chaque élément de la colonne ALT
+                alt_split = alt.split(',')  # Pour les cas : 'T,C' -> ['T', 'C']
+                for new_alt in alt_split:
+                    if isMadeOfNuc(new_alt) and isMadeOfNuc(ref):  # Si ce sont des bases nucléiques
+                        dic_temp = getInsertionsAndDeletions(ref, new_alt)
+                        dic_ins_temp, dic_del_temp = insertAndDel2Dic(dic_temp)
+                        dic_ins = mergeDic(dic_ins, dic_ins_temp)   # Mise à jour des dictionnaires
+                        dic_del = mergeDic(dic_del, dic_del_temp)
+
+                    else :  # Si c'est une balise
+                        for case in COLONNES['ALT']:
+                            new_alt = new_alt.replace('>', '')
+                            new_alt = new_alt.replace('<', '')
+                            if case['ID'] == new_alt :  # Si elle est répertoriée
+                                try :
+                                    dic_balises[new_alt] += 1   # Ajout au dictionnaire des balises
+                                except :
+                                    dic_balises[new_alt] = 1    
+
+                                description = case['Description']
+                                if (new_alt, description) not in dic_descriptions.items():  # Ajout aux descriptions pour légender
+                                    dic_descriptions[new_alt] = description
+        
+    # Plot des 3 dictionnaires si jugé nécessaire
+
+    if sum(dic_ins.values()) > 0 :
+            
+        x_ins = dic_ins.keys()
+        height_ins = dic_ins.values()
+        ylabel_ins = "Nombre d'insertions"
+        xlabel_ins = 'Nucléotide'
+        title_ins = 'Insertions des nucléotides pour tous les variants du chromosome ' + str(chrom)
+        
+        color_ins = 'green'
+        edgecolor_ins = 'blue'
+        
+        plotBar(x_ins, height_ins, xlabel_ins, ylabel_ins, title_ins, color_ins, edgecolor_ins)
+
+    if sum(dic_del.values()) > 0 :
+        x_del = dic_del.keys()
+        height_del = dic_del.values()
+        ylabel_del = 'Nombre de délétions'
+        xlabel_del = 'Nucléotides'
+        title_del = 'Délétions des nucléotides pour tous les variants du chromosome ' + str(chrom)
+        color_del = 'red'
+        edgecolor_del = 'yellow'
+        
+        plotBar(x_del, height_del, xlabel_del, ylabel_del, title_del, color_del, edgecolor_del)
+                
+    if sum(dic_balises.values()) > 0 :
+        x_balises = dic_balises.keys()
+        height_balises = dic_balises.values()
+        ylabel_balises = 'Nombre de délétions et insertions'
+        xlabel_balises = 'Nucléotides'
+        title_balises = 'Délétions et insertions des nucléotides pour les variants du chromosome ' + str(chrom)
+        color_balises = 'white'
+        edgecolor_balises = 'orange'
+        text_balises = descriptionBarString(dic_descriptions)
+        
+        plotBar(x_balises, height_balises, xlabel_balises, ylabel_balises, title_balises, color_balises, edgecolor_balises, text_balises)
+    
 
 def qualityTotal():
     '''
@@ -576,6 +659,7 @@ def getFilterDescription(ID):
     '''
     
     global COLONNES
+    
     for FILTER in COLONNES['FILTER']:
         if FILTER['ID'] == ID :
             return FILTER['Description']
@@ -623,14 +707,14 @@ def analyzeFilterChrom(chrom):
     legends = dic_legends.values()
     
     plotPieChart(sizes, labels, title, legends)
-    
+
 
 def plotPieChart(sizes, labels, title, legends = []):
     '''
         Fonction de plot de pie chart
     '''
-
-    plt.figure()
+    
+    plt.figure(figsize=(8,5))
     patches, texts, junk = plt.pie(sizes, labels = labels, autopct='%1.1f%%', startangle=180)
     plt.title(title, bbox={'facecolor':'0.8', 'pad':5})
 
@@ -644,8 +728,7 @@ def plotBar(x, height, xlabel, ylabel, title, color, edgecolor, text = ''):
     '''
 
     width = 1.0
-    fig, ax = plt.subplots()
-    #fig = plt.figure(figsize=(8, 6))
+    fig, ax = plt.subplots(figsize=(7,5))
     plt.bar(x, height, width, color=color, edgecolor = edgecolor)
     plt.ylabel(ylabel)
     plt.xlabel(xlabel)
@@ -655,10 +738,11 @@ def plotBar(x, height, xlabel, ylabel, title, color, edgecolor, text = ''):
         props = dict(boxstyle='round', facecolor='wheat', alpha=0.5)
         ax.text(0.05, 0.95, text, transform=ax.transAxes, fontsize=8,
         verticalalignment='top', bbox=props)
-        
+
 
 def main():
     global VARIANT, SYNCHRO_COLUMNS, COLONNES
+    
     # ETAPE 1 : Vérification et ouverture du fichier
     if checkName(filePath):
         f = getFile(filePath)
@@ -678,7 +762,6 @@ def main():
     #ETAPE 3 : Analyse des variants
     
     # Idées : 
-    #         - Combien de délétions/insertions ?
     #         - Taille
     #         - Analyse sur les tags existants
     
@@ -694,11 +777,13 @@ def main():
     #analyzeFilterChrom('1')    # Analyse du filtre pour un chromosome donné
     
     analyzeInsertAndDelTotal()  # Analyse des insertions et délétions
+    #analyzeInsertAndDelChrom('1')  # Analyse des insertions et délétions pour un chromosome donné
 
 ##    for chrom in printChromName():
 ##        qualityChrom(chrom)
 ##        analyzeFilterChrom(chrom)
 ##        REFbaseTypeChrom(chrom)
+##        analyzeInsertAndDelChrom(chrom)
     
 
 def printInfo():
@@ -734,6 +819,5 @@ def printVariants():
         print(variant)
 
 main()
-
 
 plt.show(block = False)
