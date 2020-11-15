@@ -1,4 +1,4 @@
-  import sys, re
+import sys, re, os
 import matplotlib.pyplot as plt
 from tkinter import *
 from tkinter import ttk, filedialog, messagebox
@@ -53,17 +53,87 @@ def getChromList():
     return L
 
 
-# Création dela fenêtre
+# Création de la fenêtre
 root = Tk()
 root.title('VFC Analizer')
-root.geometry('800x400')
-root.iconbitmap(r'C:\Users\Jack\Desktop\28881.ico')
+root.geometry('800x500')
+root.resizable(False, False)
+root.iconbitmap(r'C:\Users\Jack\Desktop\28881.ico') # TODO changer path
+
+# Création des frames
+frame_1 = Frame(root, width=800, height=200) # Image
+frame_1.grid(row=0, column=0, pady = 10)
+image_path = r"C:\Users\Jack\Desktop\dna_grant_websitegraphic.png"   # TODO changer path
+
+frame_2 = Frame(root, width=800, height=100)    # Browse Button + current_file_name
+frame_2.grid(row=1, column=0, pady = 15)
+shown_file_name = Label(frame_2, text = '')
+
+frame_3 = Frame(root, width=800, height=100)   # 'Analyse' + 'chrom' + 2 dropdowns
+frame_3.grid(row=2, column=0)
+
+frame_4 = Frame(root, width=800, height=100)  # Analyse Button + AnalyseRandom Button
+frame_4.grid(row=3, column=0)
+
+# Couleurs
+color = 'pink'
+
+root.configure(bg=color)
+frame_2.configure(bg=color)
+frame_3.configure(bg=color)
+frame_4.configure(bg=color)
+
 
 def makeWindow():
-    # Création des éléments de la fenêtre
-    makeAnalyseButton(root)
-    makeAnalyseRandomButton(root)
-    makeBrowseButton(root)
+    '''
+        Instancie les éléments de la fenêtre graphique
+    '''
+    
+    global root
+
+    makeImage()
+    
+    makeBrowseButton()
+    UpdateShownFilename()
+    
+    makeAnalyseText()
+    makeChromText()
+    
+    makeAnalyseButton()
+    makeAnalyseRandomButton()
+
+
+def makeImage():
+    
+    global frame_1, image_path
+
+    image = Image.open(image_path)
+    image = image.resize((796, 200), Image.ANTIALIAS)
+    photo = ImageTk.PhotoImage(image)
+
+    label = Label(frame_1, image=photo)
+    label.image = photo 
+    label.pack()
+    
+
+def makeAnalyseText():
+        
+    global frame_3
+
+    text = 'Analyse : '
+
+    analyseText = Label(frame_3, text = text)
+    analyseText.grid(row = 0, column = 0, padx = 5, pady = 20)
+
+
+def makeChromText():
+        
+    global frame_3
+
+    text = 'Chromosome : '
+
+    analyseText = Label(frame_3, text = text)
+    analyseText.grid(row = 0, column = 2, padx = 5, pady = 20)
 
 
 # Event lors de la sélection d'un chromosome
@@ -71,12 +141,13 @@ def updateSelectedChrom(event):
     global selected_chrom, dropdown_chrom
 
     selected_chrom = dropdown_chrom.get()
+    
 
 CHROM_LIST = ['']
-dropdown_chrom = ttk.Combobox(root, value = CHROM_LIST, state="readonly")
+dropdown_chrom = ttk.Combobox(frame_3, value = CHROM_LIST, state="readonly")
 dropdown_chrom.current(0)
 dropdown_chrom.bind('<<ComboboxSelected>>', updateSelectedChrom)
-dropdown_chrom.grid(column = 1, row = 0)
+dropdown_chrom.grid(column = 3, row = 0 , padx=5, pady=20)
 
 
 # Event lors de la sélection d'une analyse
@@ -85,11 +156,12 @@ def updateSelectedAnalyse(event):
 
     selected_analyse = dropdown_analyse.get()
 
+
 ANALYSES_LIST = ['', 'Qualité' , 'Génome de référence', 'Filtre', 'Insertions/Délétions']
-dropdown_analyse = ttk.Combobox(root, value = ANALYSES_LIST, state="readonly")
+dropdown_analyse = ttk.Combobox(frame_3, value = ANALYSES_LIST, state="readonly")
 dropdown_analyse.current(0)
 dropdown_analyse.bind('<<ComboboxSelected>>', updateSelectedAnalyse)
-dropdown_analyse.grid(column =0, row =0)
+dropdown_analyse.grid(column = 1, row =0, padx=5, pady=20)
 
     
 # Event du bouton d'analyse random
@@ -100,32 +172,28 @@ def clickAnalyseRandom():
     global filename, analyseToFunction
 
     if not filename :
-        print('Pas de fichier sélectionné')
+        openNoFileSelectedWindow()
         return
     
     random_chrom = choice(CHROM_LIST)
     random_analyse = choice(ANALYSES_LIST[1:])
-    
-    print('Analyse : ' + random_analyse + ', Chrom : ' + random_chrom)
 
     if random_chrom == 'GLOBAL' :
-            print('Lance -> ' + random_analyse + 'GLOBAL')
             analyseToFunction[random_analyse][0]()
 
     else :
-            print('Lance -> ' + random_analyse + ', ' + random_chrom)
             analyseToFunction[random_analyse][1](random_chrom)
 
     
-
-    
-def makeAnalyseRandomButton(root):
+def makeAnalyseRandomButton():
     '''
         Crée le bouton d'une analyse random
     '''
+
+    global frame_4
     
-    buttonAnalyseRandom  = Button(root, text = 'Analyse Random', command = clickAnalyseRandom)
-    buttonAnalyseRandom.grid(column = 0,row = 1)
+    buttonAnalyseRandom  = Button(frame_4, text = 'Analyse Random', command = clickAnalyseRandom)
+    buttonAnalyseRandom.grid(column = 0, row = 0, padx = 5, pady = 20)
 
 
 def clickAnalyse():
@@ -133,36 +201,33 @@ def clickAnalyse():
         Evènement lors du click sur Analyse
         Lance l'analyse désirée si elle est possible
     '''
-    global selected_analyse, selected_chrom, analyseToFunction, filename
     
-    print('\nSelected -> Analyse : ' + selected_analyse + ', chrom : ' + selected_chrom)
+    global selected_analyse, selected_chrom, analyseToFunction, filename
 
     if not filename:
-        print('Pas de fichier sélectionné')
-        return
+        openNoFileSelectedWindow()
 
-    if selected_analyse :   # Si un analyse est sélectionnée
+    elif selected_analyse :   # Si une analyse est sélectionnée
         
         if selected_chrom in getChromList(): # Si un chromosome est selectionné, analyse par chromosome
-
-            print('Lance -> ' + selected_analyse + ', ' + selected_chrom)
             analyseToFunction[selected_analyse][1](selected_chrom)
             
         else :  # Analyse globale
-            print('Lance -> ' + selected_analyse + ' GLOBAL')
             analyseToFunction[selected_analyse][0]()
             
     else :
-        print("Pas d'analyse sélectionnée")
+        openNoAnalyseSelectedWindow()
 
 
-def makeAnalyseButton(root):
+def makeAnalyseButton():
     '''
         Crée le bouton d'une analyse random
     '''
 
-    buttonAnalyse  = Button(root, text = 'Analyse', command = clickAnalyse)
-    buttonAnalyse.grid(column =1, row =1)
+    global frame_4
+
+    buttonAnalyse  = Button(frame_4, text = 'Analyse', command = clickAnalyse)
+    buttonAnalyse.grid(column = 1, row = 0, padx = 5, pady = 20)
 
 
 # Event du bouton browse
@@ -186,18 +251,46 @@ def clickBrowse():
             init_all(file)      # Rempli
             updateDropDown()    # Met à jour
             filename = choice
+            UpdateShownFilename()
              
     else :
-        print('Fichier incorrect')
+        openFichierIncorrectWindow()
 
+
+def getNameAndExt(filename):
+    '''
+        Renvoie le nom et l'extension d'une fichier à partir de son chemin
+    '''
+
+    return os.path.basename(filename)
+
+
+def UpdateShownFilename():
+    '''
+        Remplace et affiche le nom du fichier choisi sur la fenêtre
+    '''
+
+    global frame_2, shown_file_name, filename, color
+
+
+    text = 'Fichier : ' + getNameAndExt(filename)
     
-def makeBrowseButton(root):
+    shown_file_name.destroy()   # Enlève l'ancien affichage
+    
+    shown_file_name = Label(frame_2, text = text, font = "Time 12 bold", bg = color)   # Crée et affiche un nouveau
+    shown_file_name.pack(padx=5, pady=10)
+    
+    
+    
+def makeBrowseButton():
     '''
         Crée le bouton de recherche de fichier
     '''
     
-    myButtonBrowse = Button(root, text = 'browse', command = clickBrowse)
-    myButtonBrowse.grid(column = 2, row = 2)
+    global frame_2
+    
+    myButtonBrowse = Button(frame_2, text = 'Sélectionner un fichier', command = clickBrowse)
+    myButtonBrowse.pack(padx=5, pady=10)
 
 
 def updateDropDown():
@@ -207,20 +300,15 @@ def updateDropDown():
         pour des raisons esthétiques
     '''
     
-    global dropdown_chrom, CHROM_LIST
+    global dropdown_chrom, CHROM_LIST, frame_3
 
     CHROM_LIST = getChromList()
     CHROM_LIST.insert(0, 'GLOBAL')
-    dropdown_chrom = ttk.Combobox(root, value = CHROM_LIST, state="readonly")
+    dropdown_chrom = ttk.Combobox(frame_3, value = CHROM_LIST, state="readonly")
     dropdown_chrom.current(0)
     dropdown_chrom.bind('<<ComboboxSelected>>', updateSelectedChrom)
-    dropdown_chrom.grid(column = 1, row = 0)
+    dropdown_chrom.grid(column = 3, row = 0)
 
-
-def showFilename():
-    global root
-
-    return
 
 #######################################################################################################################################################################
 #######################################################################################################################################################################
@@ -1023,6 +1111,39 @@ def openNoInfoWindow():
     messagebox.showinfo(title, text)
     
 
+def openNoAnalyseSelectedWindow():
+    '''
+        Fonction de plot d'une fenêtre indiquant qu'il n'y a pas
+        d'analyse sélectionnée
+    '''
+
+    title = 'No analyse'
+    text = "Pas d'analyse sélectionnée"
+    messagebox.showinfo(title, text)
+
+
+def openNoFileSelectedWindow():
+    '''
+        Fonction de plot d'une fenêtre indiquant qu'il n'y a pas
+        de fichier sélectionné
+    '''
+
+    title = 'No file'
+    text = "Pas de fichier sélectionné"
+    messagebox.showinfo(title, text)
+
+
+def openFichierIncorrectWindow():
+    '''
+        Fonction de plot d'une fenêtre indiquant que le fichier sélectionné
+        est incorrect
+    '''
+
+    title = 'Incorrect file'
+    text = "Le fichier sélectionné est incorrect, veuillez réessayer"
+    messagebox.showinfo(title, text)
+
+    
 def setGlobalEmpty():
     '''
         Vide les dictionnaires et listes globaux
