@@ -28,10 +28,10 @@ SYNCHRO_COLUMNS = {0 : 'CHROM', 1 : 'POS', 2 : 'ID', 3 : 'REF', 4 : 'ALT',
                    5 : 'QUAL', 6 : 'FILTER', 7 : 'INFO'}
 
 
-
 #######################################################################################################################################################################
 #######################################################################################################################################################################
                                                                     # INTERFACE GRAPHIQUE
+
 
 selected_analyse = ''
 selected_chrom = ''
@@ -77,7 +77,6 @@ frame_3.grid(row=2, column=0)
 frame_4 = Frame(root, width=800, height=100)  # Analyse Button + AnalyseRandom Button
 frame_4.grid(row=3, column=0)
 
-# Couleurs
 color = 'pink'
 
 root.configure(bg=color)
@@ -367,6 +366,38 @@ def init_colonnes():
             COLONNES['INFO'].append(new_case)
 
 
+def setGlobalEmpty():
+    '''
+        Vide les dictionnaires et listes globaux
+    '''
+
+    global DATE, COLONNES, ADDITIONAL_COLUMNS, VARIANTS, SYNCHRO_COLUMNS, selected_chrom
+
+
+    DATE = ""
+
+    COLONNES = {'CHROM' : [], 'POS' : [], 'ID' : [], 'REF' : [], 'ALT' : [],
+                'QUAL' : [], 'FILTER' : [], 'INFO' : [], 'FORMAT' : []}
+
+    ADDITIONAL_COLUMNS = set()
+
+    VARIANTS = list()
+
+    SYNCHRO_COLUMNS = {0 : 'CHROM', 1 : 'POS', 2 : 'ID', 3 : 'REF', 4 : 'ALT',
+                       5 : 'QUAL', 6 : 'FILTER', 7 : 'INFO'}
+
+    selected_chrom = ''
+
+
+def init_all(file):
+    '''
+        Initialise les listes et dictionnaires avec les informations du fichier
+    '''
+    
+    fillAllDatas(file)
+    init_colonnes()
+
+    
 # TODO
 def setDate(chaine):
     '''
@@ -521,7 +552,7 @@ def fillAllDatas(f):
 
 ######################################################################################################################################################################
 ######################################################################################################################################################################
-                                                # Fonctions d'analyse
+                                                                    # FONCTIONS D'ANALYSE
 
 
 def getInsertionsAndDeletions(chaine1, chaine2):
@@ -985,13 +1016,17 @@ def analyzeFilterTotal():
         except :
             dic[name] = 1
 
-    labels = dic.keys()
-    sizes = dic.values()
-    title = 'Filtre des variants'
-    legends = dic_legends.values()
-    
-    plotPieChart(sizes, labels, title, legends)
 
+    if dic :
+        labels = dic.keys()
+        sizes = dic.values()
+        title = 'Filtre des variants'
+        legends = dic_legends.values()
+        
+        plotPieChart(sizes, labels, title, legends)
+
+    else :
+        openNoInfoWindow()
 
 def getFilterDescription(ID):
     '''
@@ -1042,12 +1077,22 @@ def analyzeFilterChrom(chrom):
             except :
                 dic[name] = 1
 
-    labels = dic.keys()
-    sizes = dic.values()
-    title = 'Filtre pour les variants du chromosome ' + str(chrom)
-    legends = dic_legends.values()
-    
-    plotPieChart(sizes, labels, title, legends)
+
+    if dic :
+        labels = dic.keys()
+        sizes = dic.values()
+        title = 'Filtre pour les variants du chromosome ' + str(chrom)
+        legends = dic_legends.values()
+        
+        plotPieChart(sizes, labels, title, legends)
+        
+    else :
+        openNoInfoWindow()
+
+
+######################################################################################################################################################################
+######################################################################################################################################################################
+                                                                    # PLOT ET FENÊTRES
 
 
 def plotPieChart(sizes, labels, title, legends = []):
@@ -1149,57 +1194,19 @@ def openFichierIncorrectWindow():
     text = "Le fichier sélectionné est incorrect, veuillez réessayer"
     messagebox.showinfo(title, text)
 
-    
-def setGlobalEmpty():
-    '''
-        Vide les dictionnaires et listes globaux
-    '''
 
-    global DATE, COLONNES, ADDITIONAL_COLUMNS, VARIANTS, SYNCHRO_COLUMNS, selected_chrom
-
-
-    DATE = ""
-
-    COLONNES = {'CHROM' : [], 'POS' : [], 'ID' : [], 'REF' : [], 'ALT' : [],
-                'QUAL' : [], 'FILTER' : [], 'INFO' : [], 'FORMAT' : []}
-
-    ADDITIONAL_COLUMNS = set()
-
-    VARIANTS = list()
-
-    SYNCHRO_COLUMNS = {0 : 'CHROM', 1 : 'POS', 2 : 'ID', 3 : 'REF', 4 : 'ALT',
-                       5 : 'QUAL', 6 : 'FILTER', 7 : 'INFO'}
-
-    selected_chrom = ''
-
-
-def init_all(file):
-    '''
-        Initialise les listes et dictionnaires avec les informations du fichier
-    '''
-    
-    fillAllDatas(file)
-    init_colonnes()
-
-
+# Dictionnaire des mots-clés associés aux fonctions
 analyseToFunction = {'Qualité' : [qualityTotal, qualityChrom], 'Génome de référence' : [REFbaseTypeTotal, REFbaseTypeChrom],
                      'Filtre' : [analyzeFilterTotal, analyzeFilterChrom], 'Insertions/Délétions' : [analyzeInsertAndDelTotal, analyzeInsertAndDelChrom]}
 
 
 def main():
-    global VARIANT, SYNCHRO_COLUMNS, COLONNES
 
-    #ETAPE 0 : Création de la fenêtre graphique
+    # Création de la fenêtre graphique à partir de laquelle tout se fait
     makeWindow()
     
-    #printInfo()
-    #print(COLONNES)
-    #printVariantFILTER()
-    #print(SYNCHRO_COLUMNS)
-    #printVariants()
-    
 
-    #ETAPE 3 : Analyse des variants
+    # Analyse des variants
     
     # Idées : 
     #         - Taille
@@ -1207,23 +1214,6 @@ def main():
     
     #TODO : Analyser les chromosomes en fonction des infos
 
-    #qualityTotal()  # Analyse de la qualité pour tous les variants de tous les chromosomes
-    #qualityChrom('1') # Analyse de la qualité des variants d'un chromosome donné
-    
-    #REFbaseTypeTotal()    # Analyse des bases azotées les plus rencontrées pour l'allèle de référence
-    #REFbaseTypeChrom('1')  # Idem mais pour un chromosome en particulier pour l'allèle de référence
-
-    #analyzeFilterTotal()   # Analyse du filtre pour tous les variants
-    #analyzeFilterChrom('1')    # Analyse du filtre pour un chromosome donné
-    
-    #analyzeInsertAndDelTotal()  # Analyse des insertions et délétions
-    #analyzeInsertAndDelChrom('1')  # Analyse des insertions et délétions pour un chromosome donné
-
-##    for chrom in getChromList():
-##        qualityChrom(chrom)
-##        analyzeFilterChrom(chrom)
-##        REFbaseTypeChrom(chrom)
-##        analyzeInsertAndDelChrom(chrom)
     
 
 def printInfo():
@@ -1248,6 +1238,5 @@ def printVariants():
         print(variant)
 
 main()
-
 mainloop()
 plt.show(block = False)
