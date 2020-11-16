@@ -58,12 +58,14 @@ root = Tk()
 root.title('VFC Analizer')
 root.geometry('800x500')
 root.resizable(False, False)
-root.iconbitmap(r'C:\Users\Jack\Desktop\28881.ico') # TODO changer path
+root.iconbitmap(os.getcwd() + r'\icone_vcf.ico')
+
 
 # Création des frames
 frame_1 = Frame(root, width=800, height=200) # Image
 frame_1.grid(row=0, column=0, pady = 10)
-image_path = r"C:\Users\Jack\Desktop\dna_grant_websitegraphic.png"   # TODO changer path
+image_path = os.getcwd() + r'\image_adn.png'
+
 
 frame_2 = Frame(root, width=800, height=100)    # Browse Button + current_file_name
 frame_2.grid(row=1, column=0, pady = 15)
