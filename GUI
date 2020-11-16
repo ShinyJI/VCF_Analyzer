@@ -897,11 +897,13 @@ def REFbaseTypeTotal():
     dic = {} # Dictionnaire des occurences des gènes
     
     for variant in VARIANTS :
-        for base in variant['REF']:
-            try:
-                dic[base] += 1
-            except :
-                dic[base] = 1
+        for base_long in variant['REF']:
+            for base in base_long :
+                        if isMadeOfNuc(base):
+                            try:
+                                dic[base] += 1
+                            except :
+                                dic[base] = 1
 
     if sum(dic.values()) > 0 :  # Si il y a des valeurs à afficher
             
@@ -927,11 +929,13 @@ def REFbaseTypeChrom(chrom):
     
     for variant in VARIANTS :
         if variant['CHROM'][0] == chrom:
-            for base in variant['REF']:
-                try:
-                    dic[base] += 1
-                except :
-                    dic[base] = 1
+            for base_long in variant['REF']:
+                for base in base_long :
+                        if isMadeOfNuc(base):
+                            try:
+                                dic[base] += 1
+                            except :
+                                dic[base] = 1
 
     if sum(dic.values()) > 0 :  # Si il y a des valeurs à afficher
             
