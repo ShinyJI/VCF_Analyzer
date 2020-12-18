@@ -12,7 +12,6 @@ plt.rcParams['toolbar'] = 'None'
 DATE = ""
 
 # Les cas possibles pour chaque colonne obligatoire : dictionnaire de liste de dictionnaires
-# TODO rajouter les cas de base ? (Champs de base pour ALT et les autres -> A,T,C,G ?)
 COLONNES = {'CHROM' : [], 'POS' : [], 'ID' : [], 'REF' : [], 'ALT' : [],
             'QUAL' : [], 'FILTER' : [], 'INFO' : [], 'FORMAT' : []}
 
@@ -78,7 +77,6 @@ frame_4 = Frame(root, width=800, height=100)  # Analyse Button + AnalyseRandom B
 frame_4.grid(row=3, column=0)
 
 color = 'pink'
-
 root.configure(bg=color)
 frame_2.configure(bg=color)
 frame_3.configure(bg=color)
@@ -231,7 +229,6 @@ def makeAnalyseButton():
     buttonAnalyse.grid(column = 1, row = 0, padx = 5, pady = 20)
 
 
-# Event du bouton browse
 def clickBrowse():
     '''
         Cherche un fichier, le vérifie et l'ouvre
@@ -243,7 +240,7 @@ def clickBrowse():
     (("vcf files","*.vcf"),("all files","*.*")) )
     
     if not choice: # Pas de fichié selectionné
-        print('Pas de fichier sélectionné')
+        pass
         
     elif checkName(choice): # Si le nom du fichier est correct
         file = getFile(choice)
@@ -369,6 +366,7 @@ def init_colonnes():
 def setGlobalEmpty():
     '''
         Vide les dictionnaires et listes globaux
+        Fonction utilisée lors de la sélection d'un nouveau fichier VCF
     '''
 
     global DATE, COLONNES, ADDITIONAL_COLUMNS, VARIANTS, SYNCHRO_COLUMNS, selected_chrom
@@ -703,7 +701,7 @@ def analyzeInsertAndDelTotal():
         color_ins = 'green'
         edgecolor_ins = 'blue'
         
-        plotBar(x_ins, height_ins, xlabel_ins, ylabel_ins, title_ins, color_ins, edgecolor_ins)
+        plotBar(x_ins, height_ins, xlabel_ins, ylabel_ins, title_ins, color_ins, edgecolor_ins, False)
 
     else :
         plot1= False
@@ -718,7 +716,7 @@ def analyzeInsertAndDelTotal():
         color_del = 'red'
         edgecolor_del = 'yellow'
         
-        plotBar(x_del, height_del, xlabel_del, ylabel_del, title_del, color_del, edgecolor_del)
+        plotBar(x_del, height_del, xlabel_del, ylabel_del, title_del, color_del, edgecolor_del, False)
 
     else :
         plot2 = False
@@ -733,7 +731,7 @@ def analyzeInsertAndDelTotal():
         edgecolor_balises = 'orange'
         text_balises = descriptionBarString(dic_descriptions)
         
-        plotBar(x_balises, height_balises, xlabel_balises, ylabel_balises, title_balises, color_balises, edgecolor_balises, text_balises)
+        plotBar(x_balises, height_balises, xlabel_balises, ylabel_balises, title_balises, color_balises, edgecolor_balises, False, text_balises)
 
     else :
         plot3 = False
@@ -801,7 +799,7 @@ def analyzeInsertAndDelChrom(chrom):
         color_ins = 'green'
         edgecolor_ins = 'blue'
         
-        plotBar(x_ins, height_ins, xlabel_ins, ylabel_ins, title_ins, color_ins, edgecolor_ins)
+        plotBar(x_ins, height_ins, xlabel_ins, ylabel_ins, title_ins, color_ins, edgecolor_ins, False)
 
     else :
         plot1 = False
@@ -815,7 +813,7 @@ def analyzeInsertAndDelChrom(chrom):
         color_del = 'red'
         edgecolor_del = 'yellow'
         
-        plotBar(x_del, height_del, xlabel_del, ylabel_del, title_del, color_del, edgecolor_del)
+        plotBar(x_del, height_del, xlabel_del, ylabel_del, title_del, color_del, edgecolor_del, False)
 
     else :
         plot2 = False
@@ -830,7 +828,7 @@ def analyzeInsertAndDelChrom(chrom):
         edgecolor_balises = 'orange'
         text_balises = descriptionBarString(dic_descriptions)
         
-        plotBar(x_balises, height_balises, xlabel_balises, ylabel_balises, title_balises, color_balises, edgecolor_balises, text_balises)
+        plotBar(x_balises, height_balises, xlabel_balises, ylabel_balises, title_balises, color_balises, edgecolor_balises, False, text_balises)
 
     else :
         plot3 = False
@@ -877,7 +875,7 @@ def qualityTotal():
         color = (0.65098041296005249, 0.80784314870834351, 0.89019608497619629, 1.0)
         edgecolor = 'blue'
         
-        plotBar(x, height, xlabel, ylabel, title, color, edgecolor)
+        plotBar(x, height, xlabel, ylabel, title, color, edgecolor, True)
         
     else :
         openNoInfoWindow()
@@ -911,7 +909,7 @@ def qualityChrom(chrom):
         color = (0.65098041296005249, 0.80784314870834351, 0.89019608497619629, 1.0)
         edgecolor = 'black'
         
-        plotBar(x, height, xlabel, ylabel, title, color, edgecolor)
+        plotBar(x, height, xlabel, ylabel, title, color, edgecolor, True)
 
     else :
         openNoInfoWindow()
@@ -940,6 +938,7 @@ def REFbaseTypeTotal():
             
         labels = dic.keys()
         sizes = dic.values()
+        # TODO
         title = "Nombre d'occurences de chaques base nucléique du génome de référence"
         
         plotPieChart(sizes, labels, title)
@@ -972,8 +971,8 @@ def REFbaseTypeChrom(chrom):
             
         labels = dic.keys()
         sizes = [c for c in dic.values()]
+        # TODO
         title = "Nombre d'occurences de chaques base nucléique \ndu génome de référence pour le chromosome " + chrom
-        
         plotPieChart(sizes, labels, title)
 
     else :
@@ -1122,7 +1121,7 @@ def plotPieChart(sizes, labels, title, legends = []):
     canvas2.draw()
 
 
-def plotBar(x, height, xlabel, ylabel, title, color, edgecolor, text = ''):
+def plotBar(x, height, xlabel, ylabel, title, color, edgecolor, quality, text = ''):
     '''
         Fonction de plot de diagramme
     '''
@@ -1143,6 +1142,11 @@ def plotBar(x, height, xlabel, ylabel, title, color, edgecolor, text = ''):
     plt.xlabel(xlabel)
     plt.title(title)
 
+    if quality :
+        plt.axhline(y=20, color = 'r', linestyle='--', label = 'salut')
+        # TODO
+        ax.legend(['Qualité pour laquell ...'])
+    
     if text :
         props = dict(boxstyle='round', facecolor='wheat', alpha=0.5)
         ax.text(0.05, 0.95, text, transform=ax.transAxes, fontsize=8,
@@ -1202,17 +1206,7 @@ analyseToFunction = {'Qualité' : [qualityTotal, qualityChrom], 'Génome de réf
 
 def main():
 
-    # Création de la fenêtre graphique à partir de laquelle tout se fait
     makeWindow()
-    
-
-    # Analyse des variants
-    
-    # Idées : 
-    #         - Taille
-    #         - Analyse sur les tags existants
-    
-    #TODO : Analyser les chromosomes en fonction des infos
 
     
 
