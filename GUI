@@ -104,6 +104,12 @@ frame_3.configure(bg=color)
 frame_4.configure(bg=color)
 
 
+# Fermeture du programme si on ferme la fenêtre
+def on_closing():
+    root.destroy()
+    
+root.protocol("WM_DELETE_WINDOW", on_closing)
+
 def makeWindow():
     """
     Instancie les éléments de la fenêtre graphique
@@ -1179,8 +1185,7 @@ def REFbaseTypeTotal():
 
         labels = dic.keys()
         sizes = dic.values()
-        # TODO
-        title = "Nombre d'occurences de chaques base nucléique du génome de référence"
+        title = "Nombre d'occurences de chaques base nucléique\ndu génome de référence ayant subi une variation"
 
         plotPieChart(sizes, labels, title)
 
@@ -1214,10 +1219,9 @@ def REFbaseTypeChrom(chrom):
 
         labels = dic.keys()
         sizes = [c for c in dic.values()]
-        # TODO
         title = (
             "Nombre d'occurences de chaques base nucléique \ndu génome de référence pour le chromosome "
-            + chrom
+            + chrom + "\nayant subi une variation"
         )
         plotPieChart(sizes, labels, title)
 
@@ -1402,7 +1406,7 @@ def plotBar(x, height, xlabel, ylabel, title, color, edgecolor, quality, text=''
     if quality:
         plt.axhline(y=20, color='r', linestyle='--', label='salut')
         # TODO
-        ax.legend(['Qualité pour laquell ...'])
+        ax.legend(["Qualité minimale pour un pourcentage d'erreur <= 1 %"])
 
     if text:
         props = dict(boxstyle='round', facecolor='wheat', alpha=0.5)
